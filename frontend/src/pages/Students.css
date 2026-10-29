@@ -1,0 +1,3 @@
+.student-pagination { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; padding:14px 0 2px; color:#667085; font-size:13px; }
+.student-pagination > div { display:flex; align-items:center; gap:10px; }
+.student-pagination button:disabled { opacity:.45; cursor:not-allowed; }

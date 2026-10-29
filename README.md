@@ -552,7 +552,7 @@ Screenshots are stored in `Output_ScreenShots/` in this repository.
 ![StudentsList](Output_ScreenShots/13-StudentsLists.png)
 
 ### StudentsPerformance
-![StudentsPerformance](Output_ScreenShots/14-StudentsPerfromance.png)
+![StudentsPerformance](Output_ScreenShots/14-StudentsPerformance.png)
 
 ### AI recommendation
 ![AI recommendation](Output_ScreenShots/15-AI_Recommendation.png)

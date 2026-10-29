@@ -533,23 +533,38 @@ Screenshots are stored in `Output_ScreenShots/` in this repository.
 ### Authenticated application
 ![Authenticated application](Output_ScreenShots/7-Authentication.png)
 
-### Dashboard
-![Dashboard](Output_ScreenShots/8-Dashboard.png)
+### AdminDashboard
+![AdminDashboard](Output_ScreenShots/8-AdminDashboard.png)
 
-### Student management
-![Student management](Output_ScreenShots/9-AddStudents.png)
+### AuditLogs
+![AuditLogs](Output_ScreenShots/9-Auditlogs.png)
 
-### Student list
-![Student list](Output_ScreenShots/StudentList.png)
+### CreateTrainer
+![CreateTrainer](Output_ScreenShots/10-Createtrainer.png)
+
+### Add Student
+![AddStudents](Output_ScreenShots/11-AddStudent.png)
 
 ### Add performance
-![Add performance](Output_ScreenShots/10-AddPerformance.png)
+![Add performance](Output_ScreenShots/12-AddPerformance.png)
+
+### StudentsList
+![StudentsList](Output_ScreenShots/13-StudentsLists.png)
+
+### StudentsPerformance
+![StudentsPerformance](Output_ScreenShots/14-StudentsPerfromance.png)
 
 ### AI recommendation
-![AI recommendation](Output_ScreenShots/11-AI_Recommendation.png)
+![AI recommendation](Output_ScreenShots/15-AI_Recommendation.png)
+
+### Trainer Dashboard
+![Trainer Dashboard](Output_ScreenShots/16-TrainerDashboard.png)
+
+### Student Dashboard
+![Student Dashboard](Output_ScreenShots/17-StudentDashboard.png)
 
 ### Logout
-![Logout](Output_ScreenShots/12-logout.png)
+![Logout](Output_ScreenShots/18-logout.png)
 
 ## Troubleshooting
 

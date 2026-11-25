@@ -257,7 +257,7 @@ You will also need a Hugging Face API token only if you want to enable external 
 Replace the URL with your GitHub repository URL:
 
 ```bash
-git clone https://github.com/<your-username>/smart-performance-analyzer.git
+git clone git clone https://github.com/<your-username>/smart-performance-analyzer.git
 cd smart-performance-analyzer
 ```
 

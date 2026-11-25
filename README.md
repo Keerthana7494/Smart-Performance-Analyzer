@@ -254,14 +254,10 @@ You will also need a Hugging Face API token only if you want to enable external 
 
 ### 1. Clone the repository
 
-Replace the URL with your GitHub repository URL:
-
 ```bash
-git clone git clone https://github.com/<your-username>/smart-performance-analyzer.git
+git clone https://github.com/<your-username>/smart-performance-analyzer.git
 cd smart-performance-analyzer
 ```
-
-If the repository contains an extra parent folder after extracting the ZIP, move into the directory that contains `backend/`, `frontend/`, and `database/`.
 
 ### 2. Configure Oracle Database
 
@@ -288,18 +284,6 @@ Go to the backend folder and create a local `.env` file based on `.env.example`:
 
 ```bash
 cd backend
-```
-
-Windows PowerShell:
-
-```powershell
-Copy-Item .env.example .env
-```
-
-macOS/Linux:
-
-```bash
-cp .env.example .env
 ```
 
 Edit `.env` and provide your own Oracle connection details and a strong, unique JWT secret. Do not commit `.env`.
@@ -338,20 +322,6 @@ Open a second terminal:
 cd frontend
 ```
 
-Create the local environment file:
-
-Windows PowerShell:
-
-```powershell
-Copy-Item .env.example .env
-```
-
-macOS/Linux:
-
-```bash
-cp .env.example .env
-```
-
 The example configuration is:
 
 ```dotenv
@@ -372,12 +342,6 @@ Windows:
 
 ```powershell
 .\mvnw.cmd spring-boot:run
-```
-
-macOS/Linux:
-
-```bash
-./mvnw spring-boot:run
 ```
 
 If the Maven Wrapper is unavailable or unsuitable, install Maven and run:

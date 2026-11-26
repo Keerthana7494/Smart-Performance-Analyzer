@@ -1,4 +1,4 @@
-name: CI
+name: Smart Performance analyzer
 on:
   push:
     branches: [main]

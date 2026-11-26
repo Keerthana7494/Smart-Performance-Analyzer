@@ -1,625 +1,1148 @@
 # Smart Performance Analyzer
 
-A full-stack student performance management application built with **React, Spring Boot, Oracle Database, and Hugging Face AI**. It helps educators manage student records, calculate academic performance using deterministic business rules, identify students who may need support, and generate practical recommendations.
+Smart Performance Analyzer is a full-stack web application designed to help educators track student performance and identify students who may need additional support.
 
-> **Portfolio project:** This repository demonstrates full-stack development, REST API design, Oracle PL/SQL integration, authentication and role-based authorization, audit logging, and AI API integration. It is not presented as a production-certified education or student-record system.
+The application allows users to manage student details, enter academic performance data, calculate an overall performance score, classify students based on their performance, and generate AI-based recommendations.
 
-## Contents
+The project was built to practice and demonstrate real-world application development using **React, Spring Boot, Oracle, PL/SQL, REST APIs, JWT authentication, role-based access control, audit logging, and AI integration**.
 
-- [Overview](#overview)
-- [Features](#features)
-- [Technology Stack](#technology-stack)
-- [Architecture](#architecture)
-- [Application Workflow](#application-workflow)
-- [Performance Calculation](#performance-calculation)
-- [Roles and Security](#roles-and-security)
-- [Project Structure](#project-structure)
-- [Prerequisites](#prerequisites)
-- [Setup and Installation](#setup-and-installation)
-- [Environment Configuration](#environment-configuration)
-- [Database Setup](#database-setup)
-- [Run the Application](#run-the-application)
-- [REST API Reference](#rest-api-reference)
-- [Reports and Audit Logs](#reports-and-audit-logs)
-- [Screenshots](#screenshots)
-- [Troubleshooting](#troubleshooting)
-- [Security Notes](#security-notes)
-- [Known Limitations](#known-limitations)
-- [Possible Enhancements](#possible-enhancements)
-- [Learning Outcomes](#learning-outcomes)
-- [Author](#author)
-- [License](#license)
+---
 
-## Overview
+## Project Overview
 
-Academic performance information can be spread across spreadsheets and separate records, making it harder to see class-level results or identify students who need help. Smart Performance Analyzer brings student records, assessment scores, performance classification, risk indicators, and recommendations into one web application.
+In a normal classroom environment, student performance data is often maintained manually using spreadsheets or separate records.
 
-The application calculates the overall score in Oracle PL/SQL. The AI integration is used to produce a human-readable recommendation from the calculated result; it is **not** responsible for determining the score, performance category, or risk category. If AI is disabled or unavailable, a rule-based fallback recommendation is used.
+This can make it difficult to quickly identify:
 
-## Features
+* Students with low performance
+* Students who are at academic risk
+* Overall class performance
+* Individual performance trends
+* Areas where a student needs improvement
 
-### Authentication and account management
-- User registration and login.
-- Passwords stored using BCrypt hashing.
-- Stateless bearer-token authentication.
-- Forgot-password and reset-password endpoints.
-- Temporary-password change flow.
-- Protected routes and role-based access control.
+Smart Performance Analyzer brings these activities into one application.
 
-### Student management
-- Create and view student records.
-- Search/filter student records through the UI.
-- Retrieve an individual student record.
-- Activate or deactivate student records.
-- Validate input and prevent duplicate student email addresses.
+A user can add students, enter their attendance and marks, and analyze the performance. The application calculates the performance using predefined business rules and can then generate an AI-based recommendation.
 
-### Performance analysis
-- Record attendance, assignment, test, and project scores.
-- Calculate a weighted overall score through an Oracle stored procedure.
-- Classify performance as `EXCELLENT`, `GOOD`, `AVERAGE`, or `POOR`.
-- Assign a risk status of `LOW`, `MEDIUM`, or `HIGH`.
-- Update and view performance records.
-- Generate AI-based recommendations, with a rule-based fallback.
+---
 
-### Dashboard and exports
-- Dashboard statistics and charts.
-- PDF report for an individual student's performance.
-- Excel exports for dashboard, performance, and student data.
+## Main Features
 
-### Administration and auditability
-- Admin endpoints for creating and listing trainers and changing trainer status.
-- Audit-log records for selected operations.
-- Paginated audit-log retrieval restricted to administrators.
+### User Authentication
 
-## Technology Stack
+* User signup
+* User login
+* Secure password storage using BCrypt
+* Standard signed **JWT (HS256)** authentication
+* Logout
+* Forgot password
+* Password reset
+* Protected application pages
+* Temporary password flow for admin-created trainers
 
-| Area | Technologies |
-|---|---|
-| Frontend | React 18, Vite, JavaScript, React Router, Axios |
-| UI and charts | CSS, Lucide React, Recharts |
-| Forms and validation | React Hook Form, Zod |
-| Backend | Java 17, Spring Boot 3.5.x, Spring Web |
-| Persistence | Spring Data JPA, Hibernate, JdbcTemplate |
-| Security | Spring Security, BCrypt, signed bearer tokens (JJWT) |
-| Database | Oracle Database, SQL, PL/SQL, sequences, triggers, indexes, views |
-| AI | Hugging Face chat-completions-compatible API, rule-based fallback |
-| Report generation | OpenPDF, Apache POI |
-| Build tools | Maven, npm |
+### Role-Based Access Control (RBAC)
 
-## Architecture
+The application supports three roles: **Admin**, **Trainer** and **Student**.
+
+* Roles are enforced on the backend using Spring Security, not only hidden in the user interface
+* Public signup always creates a **Student** account; roles can never be chosen by the person signing up
+* Admins create trainer accounts and receive a one-time temporary password for them
+* A trainer must change the temporary password on first login
+* Each role sees only the screens it is allowed to use
+
+### Student Management
+
+* Add new students
+* View students
+* Search students
+* Update student information
+* Deactivate and reactivate students
+* Check duplicate email addresses
+
+### Performance Management
+
+The application stores:
+
+* Attendance
+* Assignment score
+* Test score
+* Project score
+
+The overall performance is calculated automatically.
+
+### Performance Classification
+
+Based on the calculated score, students are classified into:
+
+| Score      | Performance Level |
+| ---------- | ----------------- |
+| 90 - 100   | Excellent         |
+| 75 - 89.99 | Good              |
+| 60 - 74.99 | Average           |
+| Below 60   | Poor              |
+
+### Risk Identification
+
+The application also identifies the student's risk level.
+
+| Score      | Risk Status |
+| ---------- | ----------- |
+| 75 - 100   | Low         |
+| 60 - 74.99 | Medium      |
+| Below 60   | High        |
+
+### AI Recommendation
+
+After the performance is calculated, the application can send the structured performance result to an AI service.
+
+The AI service generates a recommendation that can help the educator understand what kind of improvement the student may need.
+
+A rule-based fallback recommendation is also available when the AI service is disabled or unavailable.
+
+### Dashboard
+
+The dashboard provides an overall view of student performance.
+
+It displays information such as:
+
+* Total students
+* Average score
+* Excellent students
+* Good students
+* Average students
+* Poor students
+* High-risk students
+
+Charts are used to make the information easier to understand.
+
+### Audit Logging
+
+Important changes are recorded so that an administrator can review who did what and when.
+
+* Records the actor, role, action, affected record, and the old and new values
+* Also stores request details such as the IP address, HTTP method and path
+* The audit entry is saved in the same transaction as the data change
+* Admin-only audit log screen with paging
+
+### Reports and Export
+
+* PDF performance report for a single student
+* Excel export of the dashboard summary
+* Excel export of performance records
+* Excel export of students
+
+---
+
+##The application now includes:
+* Standard **JWT** authentication replacing the earlier custom token
+* **Role-based access control** for Admin, Trainer and Student
+* Admin management of trainer accounts, including temporary passwords
+* A separate student portal for viewing personal performance
+* **Audit logging** with an admin review screen
+* **PDF and Excel** reports
+* **Automated tests** (JUnit 5, Mockito, MockMvc)and a GitHub Actions pipeline
+
+---
+
+# Technology Stack
+
+## Frontend
+
+* React
+* Vite
+* JavaScript
+* Axios
+* Recharts
+* HTML5
+* CSS3
+
+## Backend
+
+* Java 17
+* Spring Boot
+* Spring Web
+* Spring Data JPA
+* Hibernate
+* Spring Security
+* JWT (JJWT library)
+* BCrypt
+* JdbcTemplate
+* Jakarta Validation
+* OpenPDF and Apache POI (PDF and Excel reports)
+* Maven
+
+## Database
+
+* Oracle Database
+* SQL
+* PL/SQL
+* Stored Procedure
+* Database View
+* Sequences
+* Indexes
+
+## AI
+
+* Hugging Face API
+* Rule-based fallback recommendation
+
+## Testing and CI
+
+* JUnit 5
+* Mockito
+* Spring MockMvc
+* JaCoCo (coverage)
+* GitHub Actions
+
+---
+
+# System Architecture
 
 ```text
-┌──────────────────────────────┐
-│ React + Vite frontend        │
-│ Pages, forms, dashboard      │
-└──────────────┬───────────────┘
-               │ HTTP / JSON
-               ▼
-┌──────────────────────────────┐
-│ Spring Boot REST API         │
-│ Controllers → Services       │
-│ DTO validation / exceptions  │
-└───────┬───────────┬──────────┘
-        │           │
-        ▼           ▼
-┌──────────────┐  ┌────────────────────┐
-│ Spring       │  │ AI recommendation  │
-│ Security     │  │ Hugging Face API   │
-│ bearer token │  │ + fallback logic   │
-└──────┬───────┘  └────────────────────┘
-       │
-       ▼
-┌──────────────────────────────┐
-│ Oracle Database              │
-│ JPA + JdbcTemplate + PL/SQL  │
-│ Tables, sequences, procedure │
-│ views, audit logs            │
-└──────────────────────────────┘
+                    React Frontend
+                         |
+                         | HTTP / REST API
+                         |
+                       Axios
+                         |
+                         v
+                Spring Boot Backend
+                         |
+              +----------+----------+
+              |                     |
+              v                     v
+        Spring Security          Controllers
+        (JWT + RBAC)                |
+              |                     v
+              |                  Services
+              |                     |
+              |          +----------+----------+
+              |          |                     |
+              |          v                     v
+              |       JPA/JDBC             AI Service
+              |          |                     |
+              |          v                     v
+              |       Oracle DB          Hugging Face
+              |          |
+              |          v
+              |       PL/SQL
+              |
+              v
+     Bearer Token Filter
 ```
 
-### Backend layers
+---
 
-- **Controllers:** expose REST endpoints and map HTTP requests to application operations.
-- **DTOs:** define request and response payloads.
-- **Services:** implement student, performance, authentication, AI, audit, and reporting workflows.
-- **Repositories:** access persisted data through Spring Data JPA.
-- **JdbcTemplate:** calls the Oracle performance-calculation stored procedure.
-- **Security filter/configuration:** validates bearer tokens and applies access rules.
-- **Global exception handler:** converts application exceptions into API error responses.
+# Application Workflow
 
-## Application Workflow
+The main application flow is:
 
-1. A user signs in and receives an authentication response containing a bearer token.
-2. The frontend sends the token with protected API requests.
-3. An authorized trainer or administrator creates a student record.
-4. The user submits attendance and assessment scores.
-5. Spring Boot validates the request and confirms that the student is active.
-6. The backend calls the Oracle `calculate_performance` procedure.
-7. Oracle returns the overall score, performance level, and risk status.
-8. The backend requests an AI recommendation when AI is enabled and configured. Otherwise, it generates a fallback recommendation.
-9. The performance record is saved and returned to the frontend.
-10. The dashboard and report endpoints expose the resulting information.
+```text
+User
+  |
+  v
+Login
+  |
+  v
+Dashboard (depends on role)
+  |
+  +----> Manage Students
+  |
+  +----> Add Performance
+              |
+              v
+       Validate Input
+              |
+              v
+      Calculate Performance
+              |
+              v
+        Oracle PL/SQL
+              |
+              v
+       Overall Score
+              |
+        +-----+------+
+        |            |
+        v            v
+ Performance      Risk Status
+   Level
+        |
+        v
+ Save Performance
+        |
+        v
+ AI Recommendation
+        |
+        v
+ Save Recommendation
+        |
+        v
+ Record Audit Log
+        |
+        v
+ Display Result
+```
 
-## Performance Calculation
+---
 
-The Oracle stored procedure uses this weighted formula:
+# Performance Calculation
+
+The overall score is calculated using a weighted formula.
 
 ```text
 Overall Score =
-    (Attendance × 0.10)
-  + (Assignment × 0.20)
-  + (Test × 0.30)
-  + (Project × 0.40)
+(Attendance × 10%)
++ (Assignment × 20%)
++ (Test × 30%)
++ (Project × 40%)
 ```
 
-Example input:
+For example, assume a student has:
 
-| Component | Score | Weight | Contribution |
-|---|---:|---:|---:|
-| Attendance | 80 | 10% | 8.00 |
-| Assignment | 70 | 20% | 14.00 |
-| Test | 75 | 30% | 22.50 |
-| Project | 90 | 40% | 36.00 |
-| **Overall score** | | **100%** | **80.50** |
+```text
+Attendance = 80
+Assignment = 70
+Test       = 75
+Project    = 90
+```
 
-### Classification rules
+Calculation:
 
-| Overall score | Performance level | Risk status |
-|---:|---|---|
-| 90–100 | `EXCELLENT` | `LOW` |
-| 75–89.99 | `GOOD` | `LOW` |
-| 60–74.99 | `AVERAGE` | `MEDIUM` |
-| Below 60 | `POOR` | `HIGH` |
+```text
+80 × 10% = 8
+70 × 20% = 14
+75 × 30% = 22.5
+90 × 40% = 36
+```
 
-The score is rounded to two decimal places in PL/SQL. The AI service receives the calculated result and creates guidance; it does not replace the defined calculation rules.
+Therefore:
 
-## Roles and Security
+```text
+Overall Score = 8 + 14 + 22.5 + 36
 
-The application defines three regular account roles:
+Overall Score = 80.5
+```
 
-| Role | Intended access |
-|---|---|
-| `ADMIN` | Administration, audit logs, and student/performance/report management |
-| `TRAINER` | Student, performance, and report operations |
-| `STUDENT` | Student portal endpoint for the authenticated student's performance |
+The student will therefore be classified as:
 
-The backend also uses a restricted `PASSWORD_CHANGE` authority for the temporary-password change flow.
+```text
+Performance Level = GOOD
+Risk Status       = LOW
+```
 
-Security-related implementation includes:
-- BCrypt password hashing.
-- Stateless request authentication with a signed bearer token.
-- Protected REST endpoints configured in Spring Security.
-- Request DTO validation.
-- CORS configuration.
-- Centralized exception handling.
-- Audit logging for selected changes.
+The calculation is handled using a PL/SQL stored procedure rather than allowing the AI service to calculate the score.
 
-**Important:** this is a learning/portfolio implementation. Review the security notes below before exposing it to the public internet.
+This keeps the important business calculation deterministic and consistent.
 
-## Project Structure
+---
+
+# AI Recommendation Flow
+
+AI is used after the performance calculation.
+
+The application first calculates the student's actual performance using the defined business rules.
+
+The structured result is then passed to the AI service.
+
+```text
+Student Performance
+        |
+        v
+Oracle PL/SQL
+        |
+        v
+Score + Level + Risk
+        |
+        v
+AI Service
+        |
+        v
+Hugging Face API
+        |
+        v
+Recommendation
+        |
+        v
+Store in Database
+        |
+        v
+Display to User
+```
+
+For example, if a student has a low overall score and poor attendance, the AI can generate a recommendation focusing on attendance and the areas with lower scores.
+
+The AI is therefore used for **recommendation generation**, not for the core performance calculation.
+
+---
+
+# AI Fallback
+
+The application does not completely depend on the external AI API.
+
+If:
+
+* AI is disabled
+* API token is missing
+* Hugging Face is unavailable
+* API request fails
+* AI response is invalid
+
+the application can generate a rule-based recommendation.
+
+This allows the performance analysis feature to continue working even when the external AI service is not available.
+
+---
+
+# Database Design
+
+The main database tables are:
+
+### USERS
+
+Stores application user account information, including the role and temporary-password settings.
+
+```text
+USERS
+-----
+user_id
+full_name
+email
+password_hash
+role                    (ADMIN / TRAINER / STUDENT)
+must_change_password
+password_expires_at
+is_active
+created_at
+updated_at
+```
+
+### PASSWORD_RESET_TOKEN
+
+Stores password reset information.
+
+```text
+PASSWORD_RESET_TOKEN
+--------------------
+token_id
+user_id
+reset_token
+expiry_time
+used
+```
+
+### STUDENT
+
+Stores student information. A student record can be linked to one login account.
+
+```text
+STUDENT
+-------
+student_id
+student_name
+email
+course
+active
+user_id                 (links to USERS, unique)
+created_at
+updated_at
+```
+
+### STUDENT_PERFORMANCE
+
+Stores the performance details of each student.
+
+```text
+STUDENT_PERFORMANCE
+-------------------
+performance_id
+student_id
+attendance
+assignment_score
+test_score
+project_score
+overall_score
+performance_level
+risk_status
+ai_recommendation
+created_at
+updated_at
+```
+
+### AUDIT_LOG
+
+Stores the history of important actions.
+
+```text
+AUDIT_LOG
+---------
+log_id
+actor_user_id
+actor_name
+actor_email
+actor_role
+action
+entity_type
+entity_id
+description
+old_value
+new_value
+ip_address
+request_method
+request_path
+created_at
+```
+
+### Relationship
+
+One student can have multiple performance records.
+
+```text
+STUDENT
+   |
+   | 1
+   |
+   | N
+   v
+STUDENT_PERFORMANCE
+```
+
+This represents a **one-to-many relationship**.
+
+---
+
+# PL/SQL
+
+PL/SQL is used for the performance calculation.
+
+The stored procedure receives the student's performance values and calculates:
+
+* Overall score
+* Performance level
+* Risk status
+
+The backend calls the procedure using `JdbcTemplate`.
+
+This gives the project an example of integrating **Spring Boot with Oracle PL/SQL business logic**.
+
+---
+
+# Backend Architecture
+
+The backend follows a layered structure.
+
+```text
+Controller
+    |
+    v
+Service
+    |
+    v
+Repository
+    |
+    v
+Oracle Database
+```
+
+### Controller
+
+Handles HTTP requests and responses.
+
+Examples:
+
+```text
+StudentController
+PerformanceController
+AuthController
+AdminUserController
+StudentPortalController
+AuditLogController
+ReportController
+```
+
+### Service
+
+Contains the application/business logic.
+
+Examples:
+
+```text
+StudentService
+PerformanceService
+AuthService
+AIService
+AuditLogService
+```
+
+### Repository
+
+Handles database operations using Spring Data JPA.
+
+Examples:
+
+```text
+StudentRepository
+PerformanceRepository
+UserRepository
+AuditLogRepository
+```
+
+### DTO
+
+DTOs are used to control the data transferred between the frontend and backend.
+
+Examples:
+
+```text
+StudentRequest
+StudentResponse
+PerformanceRequest
+PerformanceResponse
+DashboardResponse
+ApiError
+```
+
+---
+
+# Security
+
+Spring Security is used to protect the application APIs.
+
+The application includes:
+
+* Password hashing using BCrypt
+* Stateless authentication using signed **JWT (HS256)** tokens
+* A bearer token filter that checks the token and the current user on every request
+* **Role-based authorization** for Admin, Trainer and Student
+* A restricted, short-lived (15-minute) `password_change` token used only to change a temporary password; it cannot access application data
+* Temporary passwords that expire
+* Public authentication endpoints and protected REST endpoints
+* Request validation
+* CORS configuration
+* Audit logging of important data changes
+
+Passwords are never stored as plain text.
+
+### Access Rules
+
+| Area                                  | Who can access                |
+| ------------------------------------- | ----------------------------- |
+| Signup, login, forgot/reset password  | Public                        |
+| Change temporary password             | Temporary-password token only |
+| Students, performance, reports        | Admin, Trainer                |
+| Trainer management, audit logs        | Admin                         |
+| Personal performance (student portal) | Student                       |
+
+---
+
+# Validation and Exception Handling
+
+The backend validates incoming requests before processing them.
+
+For example:
+
+* Required fields
+* Valid email format
+* Score range (0 to 100)
+* Duplicate student email
+* Student existence
+
+The application also uses centralized exception handling.
+
+Main custom exceptions include:
+
+```text
+BadRequestException
+DuplicateResourceException
+ResourceNotFoundException
+```
+
+A global exception handler converts these exceptions into structured API responses.
+
+---
+
+# REST API
+
+The backend exposes REST APIs for authentication, students, performance, reports, administration and audit logs.
+
+### Authentication
+
+| Method | Endpoint                              | Purpose                     |
+| ------ | ------------------------------------- | --------------------------- |
+| POST   | `/api/auth/signup`                    | Create a student account    |
+| POST   | `/api/auth/login`                     | Login                       |
+| POST   | `/api/auth/forgot-password`           | Request password reset      |
+| POST   | `/api/auth/reset-password`            | Reset password              |
+| POST   | `/api/auth/change-temporary-password` | Change a temporary password |
+
+### Students (Admin, Trainer)
+
+| Method | Endpoint                    | Purpose                          |
+| ------ | --------------------------- | -------------------------------- |
+| GET    | `/api/students`             | Get students (`status` filter)   |
+| GET    | `/api/students/{id}`        | Get student                      |
+| POST   | `/api/students`             | Add student                      |
+| PATCH  | `/api/students/{id}/status` | Deactivate or reactivate student |
+
+### Performance (Admin, Trainer)
+
+| Method | Endpoint                     | Purpose                  |
+| ------ | ---------------------------- | ------------------------ |
+| GET    | `/api/performance`           | Get performance records  |
+| GET    | `/api/performance/{id}`      | Get performance details  |
+| POST   | `/api/performance`           | Add performance          |
+| PUT    | `/api/performance/{id}`      | Update performance       |
+| DELETE | `/api/performance/{id}`      | Delete performance       |
+| GET    | `/api/performance/dashboard` | Get dashboard statistics |
+
+### Reports (Admin, Trainer)
+
+| Method | Endpoint                                            | Purpose                     |
+| ------ | --------------------------------------------------- | --------------------------- |
+| GET    | `/api/reports/students/{studentId}/performance.pdf` | Student performance PDF     |
+| GET    | `/api/reports/dashboard.xlsx`                       | Dashboard summary (Excel)   |
+| GET    | `/api/reports/performance.xlsx`                     | Performance records (Excel) |
+| GET    | `/api/reports/students.xlsx`                        | Students list (Excel)       |
+
+### Administration (Admin)
+
+| Method | Endpoint                          | Purpose                          |
+| ------ | --------------------------------- | -------------------------------- |
+| POST   | `/api/admin/trainers`             | Create a trainer account         |
+| GET    | `/api/admin/trainers`             | List trainers                    |
+| PATCH  | `/api/admin/trainers/{id}/status` | Activate or deactivate a trainer |
+| GET    | `/api/audit-logs?page=0&size=20`  | View audit logs (paged)          |
+
+### Student Portal (Student)
+
+| Method | Endpoint                      | Purpose                              |
+| ------ | ----------------------------- | ------------------------------------ |
+| GET    | `/api/student/me/performance` | View the logged-in student's results |
+
+---
+
+# Project Structure
 
 ```text
 smart-performance-analyzer/
-├── backend/
-│   ├── src/main/java/com/smartperformance/
-│   │   ├── auth/           # Authentication, accounts, roles, token security
-│   │   ├── config/         # Application configuration
-│   │   ├── controller/     # Student, performance, portal, audit endpoints
-│   │   ├── dto/            # API request/response objects
-│   │   ├── entity/         # JPA entities
-│   │   ├── exception/      # Custom exceptions and global handling
-│   │   ├── report/         # PDF and Excel report generation
-│   │   ├── repository/     # Data access
-│   │   └── service/        # Business logic, AI, audit, performance
-│   ├── src/main/resources/
-│   │   └── application.properties
-│   ├── .env.example
-│   └── pom.xml
-├── database/
-│   ├── 00_auth_tables.sql
-│   ├── 005_audit_logs.sql
-│   ├── 01_tables.sql
-│   ├── 02_sequences_triggers_indexes.sql
-│   ├── 03_procedure.sql
-│   ├── 04_view.sql
-│   ├── 06_validation_queries.sql
-│   ├── role-based-auth-migration.sql
-│   └── student-user-link-migration.sql
+│
 ├── frontend/
 │   ├── src/
 │   │   ├── components/
 │   │   ├── pages/
-│   │   └── services/
+│   │   ├── services/
+│   │   ├── App.jsx
+│   │   ├── main.jsx
+│   │   └── index.css
+│   │
 │   ├── .env.example
 │   ├── package.json
 │   └── vite.config.js
+│
+├── backend/
+│   ├── src/
+│   │   ├── main/
+│   │   │   ├── java/
+│   │   │   │   └── com/smartperformance/
+│   │   │   │       ├── auth/
+│   │   │   │       ├── config/
+│   │   │   │       ├── controller/
+│   │   │   │       ├── dto/
+│   │   │   │       ├── entity/
+│   │   │   │       ├── exception/
+│   │   │   │       ├── report/
+│   │   │   │       ├── repository/
+│   │   │   │       └── service/
+│   │   │   │
+│   │   │   └── resources/
+│   │   │       └── application.properties
+│   │   │
+│   │   └── test/
+│   │       └── java/
+│   │           └── com/smartperformance/
+│   │
+│   ├── .env.example
+│   └── pom.xml
+│
+├── database/
+│   ├── 00_auth_tables.sql
+│   ├── 01_tables.sql
+│   ├── 02_sequences_triggers_indexes.sql
+│   ├── 03_procedure.sql
+│   ├── 04_view.sql
+│   ├── 005_audit_logs.sql
+│   ├── 06_validation_queries.sql
+│   ├── role-based-auth-migration.sql
+│   └── student-user-link-migration.sql
+│
 ├── Output_ScreenShots/
-└── README.md
+│
+├── .github/
+│   └── workflows/
+│       └── ci.yml
+│
+├── .gitignore
+├── README.md
+└── LICENSE
 ```
+
+---
+
+# How to Run the Project
 
 ## Prerequisites
 
-Install these before running the project:
+Install the following before running the project:
 
-- **Java Development Kit (JDK) 17**
-- **Node.js and npm** (use a current supported LTS release)
-- **Oracle Database** accessible from your machine
-- **Oracle SQL Developer** or another Oracle SQL client
-- **Git**
-- Maven, or use the Maven Wrapper included in `backend/`
+* Java 17
+* Maven (or use the included Maven wrapper)
+* Node.js
+* npm
+* Oracle Database
+* Git
 
-You will also need a Hugging Face API token only if you want to enable external AI recommendations.
+---
 
-## Setup and Installation
-
-### 1. Clone the repository
+## 1. Clone the Repository
 
 ```bash
-git clone https://github.com/<your-username>/smart-performance-analyzer.git
+git clone <your-github-repository-url>
+```
+
+Move into the project:
+
+```bash
 cd smart-performance-analyzer
 ```
 
-### 2. Configure Oracle Database
+---
 
-1. Create or select a dedicated Oracle schema/user for this application.
-2. Open the SQL files in the `database/` directory.
-3. Review each script and run the required schema scripts in a controlled order.
-4. Run the validation queries to confirm that the tables, sequences, procedure, and view exist.
+## 2. Configure Oracle Database
 
-**Review SQL scripts before executing them.** In particular, `00_auth_tables.sql` contains `DROP TABLE PASSWORD_RESET_TOKEN` and `DROP SEQUENCE RESET_TOKEN_SEQ` statements at the end. Do not run that file unchanged on a database containing data: those statements remove the objects created earlier in the same script. Back up your database and remove or separately manage destructive statements first. Some scripts also contain informal `//` comment lines; convert these to valid SQL comments (`--`) if your SQL client reports syntax errors.
+Create the required database objects using the SQL scripts inside the `database` folder.
 
-The main database objects include:
-- `USERS` and `PASSWORD_RESET_TOKEN` for authentication.
-- `STUDENT` and `STUDENT_PERFORMANCE` for student and performance records.
-- `AUDIT_LOG` for selected activity history.
-- Sequences and triggers for generated identifiers.
-- `CALCULATE_PERFORMANCE` stored procedure.
-- `VW_STUDENT_PERFORMANCE` view.
+Run the scripts in this order:
 
-The migration scripts alter existing schemas. Run them only when the target schema needs that migration; do not rerun them blindly against an already-migrated database.
+```text
+00_auth_tables.sql
+01_tables.sql
+02_sequences_triggers_indexes.sql
+03_procedure.sql
+04_view.sql
+student-user-link-migration.sql
+005_audit_logs.sql
+```
 
-### 3. Configure backend environment variables
+`role-based-auth-migration.sql` is only needed when upgrading an older database that was created before roles were added.
 
-Go to the backend folder and create a local `.env` file based on `.env.example`:
+### Create the first Admin
+
+Public signup always creates a Student account. To create the first administrator, sign up normally and then promote that account in Oracle:
+
+```sql
+UPDATE USERS SET ROLE = 'ADMIN' WHERE LOWER(EMAIL) = LOWER('your-admin-email@example.com');
+COMMIT;
+```
+
+After that, the Admin can create Trainer accounts from the application.
+
+---
+
+## 3. Configure Backend
+
+Create a local environment file from the example:
+
+```bash
+cd backend
+cp .env.example .env
+```
+
+Then set your own values:
+
+```text
+SERVER_PORT=8081
+
+DB_URL=your_oracle_database_url
+DB_USERNAME=your_database_username
+DB_PASSWORD=your_database_password
+
+HF_ENABLED=false
+HF_TOKEN=your_huggingface_token
+
+JWT_SECRET=your_long_random_secret_key
+JWT_EXPIRATION_MS=86400000
+```
+
+Use a long random value for `JWT_SECRET` (at least 32 characters).
+
+Set `HF_ENABLED=true` and add a token only if you want AI-generated recommendations. Otherwise the rule-based fallback is used.
+
+Do not commit actual passwords, API tokens or secret keys to GitHub.
+
+---
+
+## 4. Start the Backend
+
+Open the backend folder:
 
 ```bash
 cd backend
 ```
 
-Edit `.env` and provide your own Oracle connection details and a strong, unique JWT secret. Do not commit `.env`.
-
-Minimum required settings:
-
-```dotenv
-SERVER_PORT=8081
-DB_URL=jdbc:oracle:thin:@//localhost:1521/xe
-DB_USERNAME=your_oracle_username
-DB_PASSWORD=your_oracle_password
-JWT_SECRET=replace_with_a_long_random_secret
-JWT_EXPIRATION_MS=86400000
-HF_ENABLED=false
-HF_TOKEN=
-```
-
-Use the correct Oracle service name for your installation; `xe` is only an example and may not match your local database. The backend's `application.properties` reads these environment variables. The Hugging Face token is optional when `HF_ENABLED=false`.
-
-For AI recommendations, set:
-
-```dotenv
-HF_ENABLED=true
-HF_TOKEN=your_huggingface_api_token
-HF_API_URL=https://router.huggingface.co/v1/chat/completions
-HF_MODEL=your_supported_model_id
-```
-
-Confirm that the selected model supports the configured chat-completions API. Keep the token private.
-
-### 4. Configure frontend environment variables
-
-Open a second terminal:
-
-```bash
-cd frontend
-```
-
-The example configuration is:
-
-```dotenv
-VITE_API_BASE_URL=http://localhost:8081/api
-```
-
-Change this URL if your backend runs on a different host or port. Frontend variables prefixed with `VITE_` are bundled into client-side code, so **never put passwords, private keys, or API secrets in frontend environment variables**.
-
-## Run the Application
-
-Run the backend and frontend in separate terminals.
-
-### Terminal 1 — Backend
-
-From the `backend/` directory:
-
-Windows:
-
-```powershell
-.\mvnw.cmd spring-boot:run
-```
-
-If the Maven Wrapper is unavailable or unsuitable, install Maven and run:
+Run:
 
 ```bash
 mvn spring-boot:run
 ```
 
-The default backend port is `8081`. Startup will fail if the Oracle URL, credentials, schema objects, or required configuration are incorrect.
+or
 
-### Terminal 2 — Frontend
+```bash
+./mvnw spring-boot:run
+```
 
-From the `frontend/` directory:
+The backend will start on the configured port (default `8081`).
+
+---
+
+## 5. Start the Frontend
+
+Open another terminal:
+
+```bash
+cd frontend
+```
+
+Install dependencies:
 
 ```bash
 npm install
+```
+
+Start the development server:
+
+```bash
 npm run dev
 ```
 
-Vite prints the local URL in the terminal (commonly `http://localhost:5173`). Open that URL in your browser.
+Open the URL shown by Vite in the terminal.
 
-### First-use notes
+---
 
-- Register an account through the sign-up page, then sign in.
-- Access to administration and trainer features depends on the role assigned to the account in Oracle.
-- New sign-ups should not be assumed to have administrator privileges. For local development, assign an administrator role only to an account you control, using a reviewed SQL statement and the correct database schema.
-- To use the student portal, a student account must be associated with the corresponding student record according to the schema/migration setup.
+# Configuration
 
-## Environment Configuration
+The frontend uses an environment variable for the backend URL.
 
-### Backend
+Example:
 
-| Variable | Purpose | Example/default |
-|---|---|---|
-| `SPRING_APPLICATION_NAME` | Application name | `smart-performance-analyzer` |
-| `SERVER_PORT` | Backend HTTP port | `8081` |
-| `DB_URL` | Oracle JDBC connection URL | `jdbc:oracle:thin:@//localhost:1521/xe` |
-| `DB_USERNAME` | Oracle schema username | Set locally |
-| `DB_PASSWORD` | Oracle schema password | Set locally |
-| `DB_DRIVER_CLASS_NAME` | JDBC driver | `oracle.jdbc.OracleDriver` |
-| `JPA_DDL_AUTO` | Hibernate schema mode | `update` |
-| `JPA_SHOW_SQL` | Show SQL in logs | `true` in example |
-| `HIBERNATE_DIALECT` | Hibernate dialect | `org.hibernate.dialect.OracleDialect` |
-| `HF_API_URL` | AI API endpoint | Hugging Face router URL |
-| `HF_MODEL` | AI model identifier | Configurable |
-| `HF_TOKEN` | AI API token | Empty when AI is disabled |
-| `HF_ENABLED` | Enable AI calls | `false` |
-| `JWT_SECRET` | Signing secret for bearer tokens | Generate a private secret |
-| `JWT_EXPIRATION_MS` | Token lifetime in milliseconds | `86400000` (24 hours) |
-
-### Frontend
-
-| Variable | Purpose | Example |
-|---|---|---|
-| `VITE_API_BASE_URL` | Base URL for backend API calls | `http://localhost:8081/api` |
-
-## REST API Reference
-
-Base URL for local development: `http://localhost:8081`
-
-Protected endpoints require an appropriate bearer token:
-
-```http
-Authorization: Bearer <your_access_token>
+```text
+VITE_API_BASE_URL=http://localhost:8081/api
 ```
 
-### Authentication — `/api/auth`
+The backend contains configuration for:
 
-| Method | Endpoint | Purpose | Access |
-|---|---|---|---|
-| `POST` | `/api/auth/signup` | Register an account | Public |
-| `POST` | `/api/auth/login` | Sign in | Public |
-| `POST` | `/api/auth/forgot-password` | Start password recovery | Public |
-| `POST` | `/api/auth/reset-password` | Reset password with valid reset details | Public |
-| `POST` | `/api/auth/change-temporary-password` | Change a temporary password | Temporary password-change authority |
+* Oracle database
+* JWT authentication (secret and expiry)
+* AI service
+* Application port
 
-### Students — `/api/students`
+Environment files containing real credentials should not be pushed to GitHub.
 
-| Method | Endpoint | Purpose | Access |
-|---|---|---|---|
-| `POST` | `/api/students` | Create a student | Admin, Trainer |
-| `GET` | `/api/students` | List students; accepts a `status` filter | Admin, Trainer |
-| `GET` | `/api/students/{id}` | Get a student by ID | Admin, Trainer |
-| `PATCH` | `/api/students/{id}/status?active=1` | Activate/deactivate a student | Admin, Trainer |
+---
 
-The current controller exposes a status update rather than a general `PUT` update/delete endpoint for student records.
+# Testing
 
-### Performance — `/api/performance`
+The backend includes automated tests that run **without an Oracle database**, so they can run on any machine and in CI.
 
-| Method | Endpoint | Purpose | Access |
-|---|---|---|---|
-| `POST` | `/api/performance` | Create a performance record and recommendation | Admin, Trainer |
-| `GET` | `/api/performance` | List performance records | Admin, Trainer |
-| `GET` | `/api/performance/{id}` | Get a performance record | Admin, Trainer |
-| `PUT` | `/api/performance/{id}` | Update a performance record | Admin, Trainer |
-| `DELETE` | `/api/performance/{id}` | Delete a performance record | Admin, Trainer |
-| `GET` | `/api/performance/dashboard` | Get dashboard statistics | Admin, Trainer |
+What is covered:
 
-### Student portal
+* **JWT logic** – token creation, parsing, tampered or wrongly signed tokens, and the 15-minute limit on password-change tokens
+* **Role-based security** – the real security filter chain checked with MockMvc: no token returns 401, a Student token returns 403, Trainer and Admin tokens are allowed, and a password-change token cannot reach application data
+* **Request validation** – out-of-range scores return 400
+* **Performance service** – the PL/SQL result is applied, inactive or unknown students are rejected, and audit entries are written for create, update and delete
+* **AI fallback** – recommendations are still produced when AI is disabled, has no token, or receives missing scores
 
-| Method | Endpoint | Purpose | Access |
-|---|---|---|---|
-| `GET` | `/api/student/me/performance` | Get performance for the authenticated student account | Student |
+Run the tests:
 
-### Administration and audit logs
+```bash
+cd backend
+./mvnw test          # Mac / Linux
+mvnw.cmd test        # Windows
+```
 
-| Method | Endpoint | Purpose | Access |
-|---|---|---|---|
-| `POST` | `/api/admin/trainers` | Create a trainer | Admin |
-| `GET` | `/api/admin/trainers` | List trainers | Admin |
-| `PATCH` | `/api/admin/trainers/{id}/status?active=1` | Change trainer active status | Admin |
-| `GET` | `/api/audit-logs?page=0&size=20` | Get paginated audit logs | Admin |
+The JaCoCo coverage report is generated at:
 
-### Reports — `/api/reports`
+```text
+backend/target/site/jacoco/index.html
+```
 
-| Method | Endpoint | Purpose | Access |
-|---|---|---|---|
-| `GET` | `/api/reports/students/{studentId}/performance.pdf` | Download an individual student's performance PDF | Admin, Trainer |
-| `GET` | `/api/reports/dashboard.xlsx` | Download dashboard workbook | Admin, Trainer |
-| `GET` | `/api/reports/performance.xlsx` | Download performance workbook | Admin, Trainer |
-| `GET` | `/api/reports/students.xlsx?status=ACTIVE` | Download student workbook | Admin, Trainer |
+### Continuous Integration
 
-The API list is based on the controllers in this repository. Request payload fields and response shapes are defined by the DTOs under `backend/src/main/java/com/smartperformance/**/dto/`.
+A GitHub Actions workflow (`.github/workflows/ci.yml`) runs the tests on every push and pull request and uploads the coverage report.
 
-## Reports and Audit Logs
+---
 
-- **PDF:** an individual student's performance report.
-- **Excel:** dashboard, performance, and student exports.
-- **Audit log:** records selected actions with actor information, affected entity details, request metadata, and change snapshots where implemented. Audit logging is not necessarily applied to every possible database change.
+# Screenshots
 
-## Screenshots
+Screenshots of the application.
 
-Screenshots are stored in `Output_ScreenShots/` in this repository.
+## Landing Page
 
-### Landing page
-![Landing page](Output_ScreenShots/1-LandingPage.png)
+![Landing Page](Output_ScreenShots/1-LandingPage.png)
 
-### Sign up
-![Sign up](Output_ScreenShots/2-SignUp.png)
+## SignUp
 
-### Login
+![SignUp](Output_ScreenShots/2-SignUp.png)
+
+## Login
+
 ![Login](Output_ScreenShots/3-Login.png)
 
-### Forgot password
-![Forgot password](Output_ScreenShots/4-ForgotPassword.png)
+## ForgotPassword
 
-### Password recovery flow
-![Create new password](Output_ScreenShots/5-CreateNewPassword.png)
+![ForgotPassword](Output_ScreenShots/4-ForgotPassword.png)
 
-### Reset password
-![Reset password](Output_ScreenShots/6-ResetPassword.png)
+## CreateNewPassword
 
-### Authenticated application
-![Authenticated application](Output_ScreenShots/7-Authentication.png)
+![CreateNewPassword](Output_ScreenShots/5-CreateNewPassword.png)
 
-### AdminDashboard
-![AdminDashboard](Output_ScreenShots/8-AdminDashboard.png)
+## ResetPassword
 
-### AuditLogs
-![AuditLogs](Output_ScreenShots/9-Auditlogs.png)
+![ResetPassword](Output_ScreenShots/6-ResetPassword.png)
 
-### CreateTrainer
-![CreateTrainer](Output_ScreenShots/10-Createtrainer.png)
+## Authenticated
 
-### Add Student
-![AddStudents](Output_ScreenShots/11-AddStudent.png)
+![Authenticated](Output_ScreenShots/7-Authentication.png)
 
-### Add performance
-![Add performance](Output_ScreenShots/12-AddPerformance.png)
+## Dashboard
 
-### StudentsList
-![StudentsList](Output_ScreenShots/13-StudentsLists.png)
+![Dashboard](Output_ScreenShots/8-Dashboard.png)
 
-### StudentsPerformance
-![StudentsPerformance](Output_ScreenShots/14-StudentsPerformance.png)
+## Student Management
 
-### AI recommendation
-![AI recommendation](Output_ScreenShots/15-AI_Recommendation.png)
+![Student Management](Output_ScreenShots/9-AddStudents.png)
 
-### Trainer Dashboard
-![Trainer Dashboard](Output_ScreenShots/16-TrainerDashboard.png)
+## Student List
 
-### Student Dashboard
-![Student Dashboard](Output_ScreenShots/17-StudentDashboard.png)
+![Student List](Output_ScreenShots/StudentList.png)
 
-### Logout
-![Logout](Output_ScreenShots/18-logout.png)
+## Add Performance
 
-## Troubleshooting
+![Add Performance](Output_ScreenShots/10-AddPerformance.png)
 
-### Backend cannot connect to Oracle
-- Verify that Oracle is running and reachable.
-- Check `DB_URL`, `DB_USERNAME`, and `DB_PASSWORD`.
-- Confirm the service name/SID in the JDBC URL.
-- Confirm that the required tables, sequences, triggers, view, and stored procedure exist in the schema used by the application.
+## AI Recommendation
 
-### `calculate_performance` procedure not found
-- Run the reviewed `database/03_procedure.sql` script in the correct schema.
-- Confirm the procedure name and compilation status in Oracle.
-- Check the backend database user has permission to execute it if it is owned by another schema.
+![AI Recommendation](Output_ScreenShots/11-AI_Recommendation.png)
 
-### Frontend cannot reach the backend
-- Confirm the backend is listening on port `8081` or update `VITE_API_BASE_URL`.
-- Confirm the browser's request URL and backend CORS configuration.
-- Restart the Vite development server after changing `.env`.
+## Logout
 
-### AI recommendations use fallback text
-- This is expected when `HF_ENABLED=false` or `HF_TOKEN` is empty.
-- If AI is enabled, verify the token, endpoint, model identifier, network connectivity, and the provider's current API/model availability.
-- The fallback is intended to let performance analysis continue when the external AI service fails.
+![Logout](Output_ScreenShots/12-logout.png)
 
-### API returns `401` or `403`
-- `401 Unauthorized` usually means the token is missing, expired, or invalid.
-- `403 Forbidden` usually means the authenticated role does not have access to that endpoint.
-- Sign in again and verify the account's role in the database.
+---
 
-### Database script reports SQL syntax errors
-- Use an Oracle-compatible SQL client.
-- Replace informal `//` comment lines with `--` comments where needed.
-- Execute SQL scripts individually and inspect errors rather than assuming every statement succeeded.
+# What I Learned From This Project
 
-## Security Notes
+This project helped me work with different parts of a real-world full-stack application instead of focusing on only one technology.
 
-Before publishing or deploying:
+Some of the main areas I worked with are:
 
-1. **Never commit `.env` files.** Commit only `.env.example` files with placeholders.
-2. **Rotate any credentials or API tokens that have ever been committed, shared, or included in an uploaded archive.** Removing a secret from the latest commit does not remove it from Git history.
-3. Replace example JWT secrets with a strong, randomly generated secret stored outside source control.
-4. Do not use real student personal or academic data in public demos.
-5. Review password-reset behavior and connect it to a secure delivery channel before production use.
-6. Review CORS, error responses, token lifetime, authorization rules, audit-log retention, and database privileges before deployment.
-7. Avoid exposing SQL logs or sensitive exception details in production.
-8. Review the use of `JPA_DDL_AUTO=update`; controlled database migrations are preferable for production.
-9. Keep all AI provider credentials on the backend. Do not expose them through `VITE_` variables.
+* Building REST APIs using Spring Boot
+* Designing controller, service and repository layers
+* Using Spring Data JPA with Oracle
+* Calling PL/SQL from Java
+* Implementing JWT authentication and password security
+* Designing role-based access control and enforcing it on the backend
+* Building a temporary-password flow with a restricted token
+* Recording audit logs inside the same transaction as the data change
+* Working with DTOs and request validation
+* Handling exceptions globally
+* Connecting React with REST APIs using Axios
+* Creating dashboard charts
+* Generating PDF and Excel reports
+* Integrating an external AI API
+* Designing an AI fallback mechanism
+* Writing unit and security tests with JUnit, Mockito and MockMvc
+* Setting up a CI pipeline with GitHub Actions
+* Managing environment variables and application configuration
 
-## Known Limitations
+---
 
-- AI recommendations depend on an external provider when enabled; the fallback recommendation is rule-based.
-- Password recovery and temporary-password workflows should be reviewed and tested for the intended deployment environment.
-- Database scripts may require review/cleanup for the particular Oracle version and SQL client.
-- The repository does not include a full deployment pipeline or a production-ready secret-management setup.
-- Automated tests and production hardening should be expanded before real-world use.
-- Role assignment and student-account linking require correct database setup.
+# Current Limitations
 
-## Possible Enhancements
+This project is currently designed as a portfolio and learning project.
 
-- Add automated unit, integration, and end-to-end tests.
-- Add API documentation with OpenAPI/Swagger.
-- Add pagination and filtering to larger student/performance lists.
-- Add performance trend charts over time.
-- Add email delivery and rate limiting for password recovery.
-- Add database migrations with Flyway or Liquibase.
-- Add Docker Compose for local frontend/backend/database-adjacent services.
-- Add CI checks and cloud deployment.
-- Improve audit coverage and configurable audit retention.
+Some areas can be improved further for a production deployment:
 
-## Learning Outcomes
+* Password reset can be connected to an actual email service.
+* Authentication can be extended with refresh tokens or OAuth2.
+* Trainer access is role-based; it is not yet limited to the students assigned to each trainer.
+* More detailed student performance history can be added.
+* More advanced analytics can be added to the dashboard.
+* Test coverage can be expanded further, including integration tests against Oracle and frontend tests.
+* Database schema changes can be managed with a migration tool instead of manual SQL scripts.
+* The application can be containerized using Docker.
+* Deployment can be added using a cloud platform.
 
-This project demonstrates practical work with:
+---
 
-- React frontend development and REST API integration.
-- Spring Boot controller/service/repository architecture.
-- Java DTOs, validation, and centralized exception handling.
-- Spring Security, BCrypt, bearer tokens, and role-based access.
-- Oracle SQL, PL/SQL procedures, sequences, triggers, indexes, and views.
-- Calling stored procedures from Java with `JdbcTemplate`.
-- AI API integration with a fallback path.
-- Dashboard visualization, PDF generation, Excel exports, and audit logging.
-- Environment-based application configuration.
+# Future Enhancements
 
-## Author
+Some features planned for future versions include:
 
-**Keerthana D**
+* Student performance trend analysis
+* More detailed analytics
+* Per-trainer student assignment
+* Email notifications
+* Automated monthly performance reports
+* Attendance trend analysis
+* Improved AI recommendations
+* Docker deployment
+* Cloud deployment
+
+---
+
+# Project Highlights
+
+The main technical areas demonstrated by this project are:
+
+```text
+React
+   +
+Spring Boot
+   +
+REST API
+   +
+Spring Security (JWT + RBAC)
+   +
+Spring Data JPA
+   +
+Oracle
+   +
+PL/SQL
+   +
+Audit Logging
+   +
+AI API Integration
+   +
+Automated Testing + CI
+```
+
+One of the important parts of the project is the separation between **business calculation and AI processing**.
+
+The application first uses predefined business rules and PL/SQL to calculate the actual performance. AI is then used to generate a more meaningful recommendation based on the calculated result.
+
+---
+
+# Author
+
+Keerthana D
 
 Software Trainer | AI & Software Mentor
 
-Interested in Java backend development, full-stack development, cloud technologies, and AI-powered applications.
+Interested in Java Backend Development, Full-Stack Development and AI-based applications.
 
-## License
+---
 
-No license file was identified in the reviewed project structure. If you intend to make the repository open source, add a `LICENSE` file and select a license that matches how you want others to use the code. Until then, do not assume that others have permission to reuse or redistribute it.
+# License
+
+This project is created for learning, portfolio and demonstration purposes.

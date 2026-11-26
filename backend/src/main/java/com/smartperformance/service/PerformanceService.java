@@ -108,13 +108,20 @@ public class PerformanceService {
         return toResponse(p);
     }
 
+    // 
+    
     @Transactional
-    public void delete(Long id) {
-        if (!performanceRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Performance not found: " + id);
-        }
-        performanceRepository.deleteById(id);
-    }
+public void delete(Long id) {
+    StudentPerformance p = performanceRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Performance not found: " + id));
+
+    String oldValue = snapshot(p);
+    performanceRepository.delete(p);
+
+    auditLogService.record(
+            "DELETE_PERFORMANCE", AUDIT_ENTITY_TYPE, id,
+            "Deleted performance ID: " + id, oldValue, null);
+}
 
     public DashboardResponse dashboard() {
         long totalStudents = studentRepository.findByActiveOrderByStudentNameAsc(1).size();
